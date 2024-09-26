@@ -1,0 +1,82 @@
+---
+title: "Analysis"
+output: html_document
+date: "2024-09-26"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, message = F, warning = F)
+```
+
+```{r}
+library(dplyr)
+library(stringr)
+library(tidyr)
+library(ggplot2)
+library(janitor)
+library(readr)
+```
+
+
+```{r}
+data <- read_csv("results-survey615211.csv")
+```
+
+```{r}
+data %>%
+  select_if(~ any(str_detect(., "Disagree|Strongly Agree|Strongly Disagree|Agree|Neutral")))%>%
+  select_if(~ all(!is.na(.)))%>%
+  pivot_longer(everything(), names_to = "column", values_to = "value") %>%
+  group_by(column, value) %>%
+  summarise(count = n()) %>% 
+  pivot_wider(names_from = value, values_from = count) %>% 
+  select(column,`Strongly Disagree`,`Disagree`,`Neutral`,`Agree`,`Strongly Agree`)
+```
+
+Have you ever conducted a systematic review? Why yes and why not?
+```{r}
+data %>% group_by(`Have you ever conducted a systematic review?`) %>% count()
+
+data %>%
+  select(starts_with("If you answered ”Yes” to the previous question, what motivated you to conduct a systematic review? ")) %>% 
+  rename_with(~ gsub("If you answered ”Yes” to the previous question, what motivated you to conduct a systematic review\\?", "", .)) %>% 
+  rename_with(~ gsub("\\[", "", .))%>% 
+  rename_with(~ gsub("\\]", "", .)) %>%
+  rename_with(~ gsub("^\\s+", "", .)) %>%
+   pivot_longer(everything(), names_to = "column", values_to = "value") %>%
+  group_by(column, value) %>%
+  summarise(count = n()) %>% ungroup() %>% 
+  mutate(keep=ifelse(column=="Other"|value=="Yes","keep","not")) %>% filter(keep=="keep"&!is.na(value)) %>% select(-keep) %>% 
+  mutate(column=ifelse(column=="Other",paste0(column," - ",value),column)) %>% select(-value) %>% 
+  rename(`If you answered ”Yes” to the previous question, what motivated you to conduct a systematic review?`=column)
+
+data %>%
+  select(starts_with("If you answered ”No” to the previous question, what is the reason for not conducting a systematic review?  ")) %>% 
+  rename_with(~ gsub("If you answered ”No” to the previous question, what is the reason for not conducting a systematic review\\?", "", .)) %>% 
+  rename_with(~ gsub("\\[", "", .))%>% 
+  rename_with(~ gsub("\\]", "", .)) %>%
+  rename_with(~ gsub("^\\s+", "", .)) %>%
+  mutate(`Not relevant to my research`=ifelse(Other=="was not yet relevant in my work","Yes",`Not relevant to my research`)) %>% 
+  mutate(Other=ifelse(Other=="was not yet relevant in my work",NA,Other)) %>% 
+   pivot_longer(everything(), names_to = "column", values_to = "value") %>%
+  group_by(column, value) %>%
+  summarise(count = n()) %>% ungroup() %>% 
+  mutate(keep=ifelse(column=="Other"|value=="Yes","keep","not")) %>% filter(keep=="keep"&!is.na(value)) %>% select(-keep) %>% 
+  mutate(column=ifelse(column=="Other",paste0(column," - ",value),column)) %>% select(-value) %>% 
+  rename(`If you answered ”No” to the previous question, what is the reason for not conducting a systematic review?`=column)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
