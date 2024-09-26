@@ -25,6 +25,7 @@ data <- read_csv("results-survey615211.csv")
 ```{r}
 data %>%
   select_if(~ any(str_detect(., "Disagree|Strongly Agree|Strongly Disagree|Agree|Neutral")))%>%
+  select(-`To ensure you are not a bot, please select the answer strongly agree.`) %>% 
   select_if(~ all(!is.na(.)))%>%
   pivot_longer(everything(), names_to = "column", values_to = "value") %>%
   group_by(column, value) %>%
