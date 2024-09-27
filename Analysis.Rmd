@@ -1,7 +1,12 @@
 ---
 title: "Analysis"
-output: html_document
-date: "2024-09-26"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3   # This sets the level of headers to include in the TOC
+    toc_float: 
+      collapsed: false
+      smooth_scroll: true
 ---
 
 ```{r setup, include=FALSE}
@@ -15,6 +20,7 @@ library(tidyr)
 library(ggplot2)
 library(janitor)
 library(readr)
+library(kableExtra)
 ```
 
 
@@ -41,28 +47,13 @@ data %>%
 "If you answered ”No” to the previous question, what is the reason for not conducting a systematic review",
 "If you answered ”Yes” to the previous question, what motivated you to conduct a systematic review")))
 
-
-```
-
-
-
-```{r}
-data %>%
-  select_if(~ any(str_detect(., "Disagree|Strongly Agree|Strongly Disagree|Agree|Neutral")))%>%
-  select(-`To ensure you are not a bot, please select the answer strongly agree.`) %>% 
-  select_if(~ all(!is.na(.)))%>%
-  pivot_longer(everything(), names_to = "column", values_to = "value") %>%
-  group_by(column, value) %>%
-  summarise(count = n()) %>% 
-  pivot_wider(names_from = value, values_from = count) %>% 
-  select(column,`Strongly Disagree`,`Disagree`,`Neutral`,`Agree`,`Strongly Agree`)
 ```
 
 ## Academics who have conducted a SR
 Have you ever conducted a systematic review? Why yes and why not?
 ```{r}
 #Have you ever conducted a systematic review?
-data %>% group_by(`Have you ever conducted a systematic review?`) %>% count()
+data %>% group_by(`Have you ever conducted a systematic review?`) %>% count() %>% kbl() %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
 
 #Why yes
 data %>%
@@ -76,7 +67,7 @@ data %>%
   summarise(count = n()) %>% ungroup() %>% 
   mutate(keep=ifelse(column=="Other"|value=="Yes","keep","not")) %>% filter(keep=="keep"&!is.na(value)) %>% select(-keep) %>% 
   mutate(column=ifelse(column=="Other",paste0(column," - ",value),column)) %>% select(-value) %>% 
-  rename(`If you answered ”Yes” to the previous question, what motivated you to conduct a systematic review?`=column)
+  rename(`If you answered ”Yes” to the previous question, what motivated you to conduct a systematic review?`=column) %>% kbl() %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
 
 #Why not
 data %>%
@@ -92,7 +83,7 @@ data %>%
   summarise(count = n()) %>% ungroup() %>% 
   mutate(keep=ifelse(column=="Other"|value=="Yes","keep","not")) %>% filter(keep=="keep"&!is.na(value)) %>% select(-keep) %>% 
   mutate(column=ifelse(column=="Other",paste0(column," - ",value),column)) %>% select(-value) %>% 
-  rename(`If you answered ”No” to the previous question, what is the reason for not conducting a systematic review?`=column)
+  rename(`If you answered ”No” to the previous question, what is the reason for not conducting a systematic review?`=column) %>% kbl() %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
 ```
 
 
@@ -132,7 +123,7 @@ data_SRAcademics %>%
   pivot_longer(everything()) %>% 
   group_by(name,value) %>% count() %>% 
   pivot_wider(names_from = value,values_from = n) %>% 
-  select(name,Disagree,Neutral,Agree,`Strongly Agree`)
+  select(name,Disagree,Neutral,Agree,`Strongly Agree`)  %>% kbl() %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
 
 data_SRAcademics %>% 
   select(starts_with(c("Which systematic review step(s) have you been involved in",
@@ -157,12 +148,118 @@ data_SRAcademics %>%
         strip.background = element_rect(fill="#d9dde7",color=NA))
 
 data_SRAcademics %>% 
-  select(starts_with("What was the population of the systematic reviews you have performed")) 
+  select(starts_with("What was the population of the systematic reviews you have performed")) %>% 
+  rename_with(~ gsub("What was the population of the systematic reviews you have performed\\?", "", .))%>% 
+  rename_with(~ gsub("\\[", "", .))%>% 
+  rename_with(~ gsub("\\]", "", .)) %>%
+  rename_with(~ trimws(.)) %>% 
+  mutate(`Human Studies`=ifelse(`Both`=="Yes","No",`Human Studies`)) %>% 
+  mutate(`Animal Studies`=ifelse(`Both`=="Yes","No",`Animal Studies`)) %>%
+  pivot_longer(everything()) %>% 
+  filter(value!="No") %>% 
+  mutate(name=ifelse(name=="Other",paste0(name," - ",value),name)) %>% 
+  group_by(name) %>% count()%>% 
+    rename(`What was the population of the systematic reviews you have performed?`=name) %>% kbl() %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+  
+  
+  data_SRAcademics %>% select(starts_with("If you have answer either ”Animal studies” or ”Both”, what was the rationale behind c")) %>% 
+    pivot_longer(everything()) %>% 
+    filter(value!="N/A") %>% 
+    filter(value!="No") %>% 
+    filter(!is.na(value)) %>% 
+    mutate(name=gsub("If you have answer either ”Animal studies” or ”Both”, what was the rationale behind conducting a systematic review in animal studies\\?","",name))%>% 
+  mutate(name= gsub("\\[", "", name))%>% 
+  mutate(name= gsub("\\]", "", name)) %>% 
+    mutate(name=trimws(name)) %>% 
+  mutate(name=ifelse(name=="Other",paste0(name," - ",value),name)) %>% 
+    group_by(name) %>% count() %>% 
+    rename(`If you have answer either ”Animal studies” or ”Both”, what was the rationale behind conducting a systematic review in animal studies?`=name) %>% 
+    kbl() %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+    
 ```
 
 
+## Animal research/Future of SR
+```{r}
+data_AnimalResearch<-
+data %>% 
+  select(starts_with(c("Have you performed animal experimentation in the past year",
+"I am familiar with the concept of 3Rs (Replacement, Reduction and Refinement of animals in research",
+"I believe systematic reviews can be a valuable alternative method to animal experimentation",
+"I would be interested in attending a workshop or training session on conducting systematic reviews")))
 
 
+data_AnimalResearch %>% group_by(`Have you performed animal experimentation in the past year?`) %>% count() %>% kbl() %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+
+data_AnimalResearch %>% 
+  select(starts_with(c(
+"I am familiar with the concept of 3Rs (Replacement, Reduction and Refinement of animals in research",
+"I believe systematic reviews can be a valuable alternative method to animal experimentation",
+"I would be interested in attending a workshop or training session on conducting systematic reviews"))) %>% 
+  pivot_longer(everything()) %>% 
+  group_by(name,value) %>% count() %>% 
+  pivot_wider(names_from = value,values_from = n) %>% 
+  select(name,Disagree,Neutral,Agree) %>% kbl() %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+
+```
+
+
+## Demographics
+
+```{r}
+data_demographics<-
+data %>% 
+  select(starts_with(c("Select your gender",
+"Your age",
+"Your Nationality",
+"Which country do you reside in",
+"At which institution(s) are you currently working (e.g., University of Zürich, Department of molecular biology)",
+"Which field are you working in",
+"What is the highest degree you have obtained",
+"Which stage of your career are you currently pursuing")))
+
+data_demographics%>% 
+  select(starts_with("Which field are you working in")) %>% 
+  rename_with(~ gsub("Which field are you working in\\?", "", .))%>% 
+  rename_with(~ gsub("\\[", "", .))%>% 
+  rename_with(~ gsub("\\]", "", .)) %>% 
+  pivot_longer(everything()) %>% 
+  filter(value!="No") %>% 
+  mutate(name=trimws(name),
+         name=ifelse(name=="Other",paste0(name," - ",value),name)) %>% 
+  group_by(name) %>% count() %>% 
+  rename(`Which field are you working in?`=name) %>% kbl() %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+
+##all together - could generate a plot maybe?
+rbind(data_demographics%>% 
+  select(starts_with("Which field are you working in")) %>% 
+  rename_with(~ gsub("Which field are you working in\\?", "", .))%>% 
+  rename_with(~ gsub("\\[", "", .))%>% 
+  rename_with(~ gsub("\\]", "", .)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(name=trimws(name),
+         value=ifelse(!is.na(value)&name=="Other","Yes",value)) %>% 
+  filter(value=="Yes") %>% 
+  group_by(name) %>% count() %>% ungroup() %>% 
+  mutate(group="Field of work",
+         n_perc=n/sum(n)),
+
+data_demographics%>% 
+  group_by(`What is the highest degree you have obtained?`) %>% count()%>% ungroup() %>% 
+  mutate(group="Highest degrer",
+         n_perc=n/sum(n)) %>% 
+  rename(name=1),
+
+data_demographics%>% 
+  group_by(`Which stage of your career are you currently pursuing?`) %>% count()%>% ungroup() %>% 
+  mutate(group="Stage of career",
+         n_perc=n/sum(n)) %>% 
+  rename(name=1))
+
+data_demographics %>% group_by(`Select your gender.`) %>% count() %>% ungroup() %>% mutate(n=n/sum(n))
+
+paste0("Average age was (mean, SD): ",round(mean(data_demographics$`Your age:  []`),1)," (",round(sd(data_demographics$`Your age:  []`),1),")")
+```
 
 
 
