@@ -20,7 +20,31 @@ library(readr)
 
 ```{r}
 data <- read_csv("results-survey615211.csv")
+
+Questions_groups <- read_csv("Questions_groups.csv")
 ```
+
+## General public
+```{r}
+
+data_GeneralPublic<-
+data %>% 
+  select(starts_with(c("How familiar are you with the term systematic review",
+"How would you define, in your own words, a “systematic review",
+"I am aware how systematic reviews are different from traditional literature",
+"How frequently do you read or consult published systematic reviews in your field",
+"I am planning to conduct systematic review in the future",
+"Have you published a systematic review - e.g. in a scientific journal or as a thesis",
+"I think that systematic reviews are important for advancing scientific knowledge",
+"If you answered ”Strongly disagree” or ”Disagree” to the previous question, what is the reason for your answer",
+"Have you ever conducted a systematic review",
+"If you answered ”No” to the previous question, what is the reason for not conducting a systematic review",
+"If you answered ”Yes” to the previous question, what motivated you to conduct a systematic review")))
+
+
+```
+
+
 
 ```{r}
 data %>%
@@ -34,10 +58,13 @@ data %>%
   select(column,`Strongly Disagree`,`Disagree`,`Neutral`,`Agree`,`Strongly Agree`)
 ```
 
+## Academics who have conducted a SR
 Have you ever conducted a systematic review? Why yes and why not?
 ```{r}
+#Have you ever conducted a systematic review?
 data %>% group_by(`Have you ever conducted a systematic review?`) %>% count()
 
+#Why yes
 data %>%
   select(starts_with("If you answered ”Yes” to the previous question, what motivated you to conduct a systematic review? ")) %>% 
   rename_with(~ gsub("If you answered ”Yes” to the previous question, what motivated you to conduct a systematic review\\?", "", .)) %>% 
@@ -51,6 +78,7 @@ data %>%
   mutate(column=ifelse(column=="Other",paste0(column," - ",value),column)) %>% select(-value) %>% 
   rename(`If you answered ”Yes” to the previous question, what motivated you to conduct a systematic review?`=column)
 
+#Why not
 data %>%
   select(starts_with("If you answered ”No” to the previous question, what is the reason for not conducting a systematic review?  ")) %>% 
   rename_with(~ gsub("If you answered ”No” to the previous question, what is the reason for not conducting a systematic review\\?", "", .)) %>% 
@@ -65,9 +93,72 @@ data %>%
   mutate(keep=ifelse(column=="Other"|value=="Yes","keep","not")) %>% filter(keep=="keep"&!is.na(value)) %>% select(-keep) %>% 
   mutate(column=ifelse(column=="Other",paste0(column," - ",value),column)) %>% select(-value) %>% 
   rename(`If you answered ”No” to the previous question, what is the reason for not conducting a systematic review?`=column)
-
 ```
 
+
+```{r fig.height=8}
+data_SRAcademics<-
+data %>% 
+  filter(`Have you ever conducted a systematic review?`=="Yes") %>% 
+  select(starts_with(c("How many systematic reviews have you been involved in",
+"On average, how many months did it take you to perform a systematic review (from protocol writing to a first draft of a publication)",
+"I have encountered problems in publishing my systematic review (i.e. rejections by journals, difficult peer review)",
+"Which systematic review step(s) have you been involved in",
+"There is an established process for systematic review in my group",
+"In the past, have you consulted any of the following external experts to help you with the systematic review",
+"What was/ were the most challenging step(s) of systematic review for you",
+"Would you consider performing another systematic review",
+"If you answered ”Extremely Unlikely” to the previous question, why",
+"Have you ever used one of the following software or tools to support you in the systematic review",
+"If you answered ”I have never used a software for systematic reviews” to the previous question, why",
+"Which aspects of the systematic review software or tools do you think can be improved",
+"What was the population of the systematic reviews you have performed",
+"If you have answer either ”Animal studies” or ”Both”, what was the rationale behind conducting a systematic review in animal studies")))
+
+paste0("Researchers have been involved in a median of ",median(data_SRAcademics$`How many systematic reviews have you been involved in?  []`)," SRs, with a range of ",min(data_SRAcademics$`How many systematic reviews have you been involved in?  []`)," - ",max(data_SRAcademics$`How many systematic reviews have you been involved in?  []`),". It took an average of ",round(mean(data_SRAcademics$`On average, how many months did it take you to perform a systematic review (from protocol writing to a first draft of a publication)?  []`),1)," months to complete a SR (from protocol writing to a first draft of a publication)")
+
+data_SRAcademics %>% 
+  mutate(`Would you consider performing another systematic review?`=case_when(
+    `Would you consider performing another systematic review?`=="Likely"~"Agree",
+    `Would you consider performing another systematic review?`=="Extremely Likely" ~"Strongly Agree",
+    `Would you consider performing another systematic review?`=="Neutral"~"Neutral",
+    `Would you consider performing another systematic review?`=="Extremely Unlikely"~"Strongly Disagree",
+    `Would you consider performing another systematic review?`=="Unlikely"~"Disagree"
+  )) %>% 
+  rename(`I would consider performing another systematic review.`=`Would you consider performing another systematic review?`) %>% 
+  select(`I have encountered problems in publishing my systematic review (i.e. rejections by journals, difficult peer review).`,
+         `There is an established process for systematic review in my group.`,
+         `I would consider performing another systematic review.`) %>% 
+  pivot_longer(everything()) %>% 
+  group_by(name,value) %>% count() %>% 
+  pivot_wider(names_from = value,values_from = n) %>% 
+  select(name,Disagree,Neutral,Agree,`Strongly Agree`)
+
+data_SRAcademics %>% 
+  select(starts_with(c("Which systematic review step(s) have you been involved in",
+                       "What was/ were the most challenging step(s) of systematic review",
+                       "Have you ever used one of the following software or tools to support you in the systematic review",
+                       "Which aspects of the systematic review software or tools do you think can be improved",
+                       "In the past, have you consulted any of the following external experts to help you with the systematic review"))) %>% 
+  pivot_longer(everything()) %>% 
+  separate(name,into=c("Question","Group"),sep="\\[") %>% 
+  mutate(Group=gsub("\\]","",Group)) %>% 
+  filter(value!="No") %>% 
+  group_by(Question,Group) %>% count() %>% 
+  arrange(Question,n) %>% 
+  ungroup() %>% 
+  mutate(order_y=1:n()) %>% 
+  ggplot(aes(y=reorder(Group,order_y),x=n))+
+  geom_bar(stat="identity",fill="#efefef",color="#cacaca")+
+  facet_wrap(.~Question,scales = "free",ncol=1)+
+  theme_minimal()+
+  theme(panel.grid.major.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        strip.background = element_rect(fill="#d9dde7",color=NA))
+
+data_SRAcademics %>% 
+  select(starts_with("What was the population of the systematic reviews you have performed")) 
+```
 
 
 
