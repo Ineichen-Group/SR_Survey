@@ -1,0 +1,70 @@
+---
+title: "Analysis for pitch"
+output: html_document
+date: "2024-11-11"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, message = F, warning = F)
+```
+
+```{r}
+library(dplyr)
+library(stringr)
+library(tidyr)
+library(ggplot2)
+library(janitor)
+library(readr)
+library(kableExtra)
+```
+
+
+```{r}
+data <- read_csv("results-survey615211.csv")
+
+Questions_groups <- read_csv("Questions_groups.csv")
+```
+
+```{r}
+data %>% 
+  group_by(`How familiar are you with the term systematic review?`) %>% 
+  count() %>% 
+  rename(name=1) %>% 
+  arrange(-n) %>% 
+  ungroup() %>% 
+  mutate(n=n/sum(n))
+  ggplot(aes(x=1,y=n))+
+  geom_bar(stat="identity",aes(fill=name))+
+  theme_minimal()+
+  theme(legend.position = "bottom")
+```
+
+
+```{r}
+data %>% 
+  group_by(`I am aware how systematic reviews are different from traditional literature reviews.`) %>% 
+  count() %>% 
+  rename(name=1) %>% 
+  ungroup() %>% 
+  mutate(n=n/sum(n)) %>% 
+  ggplot(aes(x=name,y=n))+
+  geom_bar(stat="identity")
+
+data %>% 
+  group_by(`Have you ever conducted a systematic review?`) %>% 
+  count()
+
+
+data %>% 
+  select(`Response ID`,starts_with("What was/ were the most challenging step(s) of systematic review for you?")) %>% 
+  pivot_longer(!`Response ID`) %>% 
+  mutate(name=gsub(".*\\[","",name)) %>% 
+  mutate(name=gsub("\\]","",name)) %>% 
+  filter(value=="Yes") %>% 
+  group_by(name) %>% count() %>% 
+  arrange(-n) %>% 
+  rename(`What was/ were the most challenging step(s) of systematic review for you?`=name) %>% ungroup() 
+  
+
+```
+

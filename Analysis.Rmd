@@ -23,34 +23,94 @@ library(readr)
 library(kableExtra)
 ```
 
-
 ```{r}
-data <- read_csv("results-survey615211.csv")
+data <- read_csv("results-survey615211.csv") %>% 
+  filter(!(`How would you define, in your own words, a “systematic review”?`=="xx"))
 
 Questions_groups <- read_csv("Questions_groups.csv")
 ```
 
 ## General public
-```{r}
 
+```{r}
 data_GeneralPublic<-
 data %>% 
   select(starts_with(c("How familiar are you with the term systematic review",
-"How would you define, in your own words, a “systematic review",
 "I am aware how systematic reviews are different from traditional literature",
 "How frequently do you read or consult published systematic reviews in your field",
 "I am planning to conduct systematic review in the future",
 "Have you published a systematic review - e.g. in a scientific journal or as a thesis",
 "I think that systematic reviews are important for advancing scientific knowledge",
-"If you answered ”Strongly disagree” or ”Disagree” to the previous question, what is the reason for your answer",
-"Have you ever conducted a systematic review",
-"If you answered ”No” to the previous question, what is the reason for not conducting a systematic review",
-"If you answered ”Yes” to the previous question, what motivated you to conduct a systematic review")))
+"If you answered ”Strongly disagree” or ”Disagree” to the previous question, what is the reason for your answer"))) 
 
+print(paste(
+  sum(data_GeneralPublic$`Have you published a systematic review - e.g. in a scientific journal or as a thesis?`=="Yes"),
+  "out of",
+  nrow(data_GeneralPublic),
+  "researchers have answered Yes to the question 'Have you published a systematic review - e.g. in a scientific journal or as a thesis?'"
+      ))
+
+data %>% 
+  group_by(`How familiar are you with the term systematic review?`) %>% 
+  count() %>% 
+  rename(name=1) %>% 
+  ungroup() %>% 
+  mutate(Percentage=n/sum(n)) %>% 
+  ggplot(aes(x=str_wrap(name, width = 20),y=Percentage))+
+  geom_bar(stat="identity",fill="#d9dde7",color="#c6cad3")+
+  theme_minimal()+
+  theme(legend.position = "none",
+        axis.title.x = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank())
+```
+
+
+```{r}
+data_GeneralPublic %>% 
+  select(`I am aware how systematic reviews are different from traditional literature reviews.`,
+         `How frequently do you read or consult published systematic reviews in your field?`,
+         `I am planning to conduct systematic review in the future.`,
+         `I think that systematic reviews are important for advancing scientific knowledge.`
+         ) %>% 
+  pivot_longer(everything()) %>% 
+  group_by(name,value) %>% 
+  count() %>% 
+  mutate(order=case_when( ## double check here this step: there might be new entries that need to be ordered
+    name=="How frequently do you read or consult published systematic reviews in your field?"&value=="I do not know"~1,
+    name=="How frequently do you read or consult published systematic reviews in your field?"&value=="Rarely"~2,
+    name=="How frequently do you read or consult published systematic reviews in your field?"&value=="Sometimes"~3,
+    name=="How frequently do you read or consult published systematic reviews in your field?"&value=="Somewhat Often"~4,
+    name=="How frequently do you read or consult published systematic reviews in your field?"&value=="Very Often"~5,
+    name=="I am aware how systematic reviews are different from traditional literature reviews."&value=="Extremely"~5,
+    name=="I am aware how systematic reviews are different from traditional literature reviews."&value=="Moderately"~3,
+    name=="I am aware how systematic reviews are different from traditional literature reviews."&value=="Not at all"~1,
+    name=="I am aware how systematic reviews are different from traditional literature reviews."&value=="Slightly"~2,
+    name=="I am aware how systematic reviews are different from traditional literature reviews."&value=="Very"~4,
+    name=="I am planning to conduct systematic review in the future."&value=="Agree"~4,
+    name=="I am planning to conduct systematic review in the future."&value=="Disagree"~2,
+    name=="I am planning to conduct systematic review in the future."&value=="Strongly Agree"~5,
+    name=="I am planning to conduct systematic review in the future."&value=="Strongly Disagree"~1,
+    name=="I am planning to conduct systematic review in the future."&value=="Neutral"~3,
+    name=="I think that systematic reviews are important for advancing scientific knowledge."&value=="Neutral"~1,
+    name=="I think that systematic reviews are important for advancing scientific knowledge."&value=="Agree"~2,
+    name=="I think that systematic reviews are important for advancing scientific knowledge."&value=="Strongly Agree"~3,
+  )) %>% 
+  ggplot(aes(y = reorder(str_wrap(value, width = 40),order),x=n))+
+  geom_bar(stat="identity",fill="#efefef",color="#cacaca")+
+  theme_minimal()+
+  theme(axis.title.y = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        strip.background = element_rect(fill="#d9dde7",color=NA))+
+  facet_wrap(.~name, scales = "free",ncol=1)
 ```
 
 ## Academics who have conducted a SR
+
 Have you ever conducted a systematic review? Why yes and why not?
+
 ```{r}
 #Have you ever conducted a systematic review?
 data %>% group_by(`Have you ever conducted a systematic review?`) %>% count() %>% kbl() %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
@@ -85,7 +145,6 @@ data %>%
   mutate(column=ifelse(column=="Other",paste0(column," - ",value),column)) %>% select(-value) %>% 
   rename(`If you answered ”No” to the previous question, what is the reason for not conducting a systematic review?`=column) %>% kbl() %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
 ```
-
 
 ```{r fig.height=8}
 data_SRAcademics<-
@@ -178,8 +237,8 @@ data_SRAcademics %>%
     
 ```
 
-
 ## Animal research/Future of SR
+
 ```{r}
 data_AnimalResearch<-
 data %>% 
@@ -202,7 +261,6 @@ data_AnimalResearch %>%
   select(name,Disagree,Neutral,Agree) %>% kbl() %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
 
 ```
-
 
 ## Demographics
 
@@ -260,12 +318,3 @@ data_demographics %>% group_by(`Select your gender.`) %>% count() %>% ungroup() 
 
 paste0("Average age was (mean, SD): ",round(mean(data_demographics$`Your age:  []`),1)," (",round(sd(data_demographics$`Your age:  []`),1),")")
 ```
-
-
-
-
-
-
-
-
-
