@@ -1,5 +1,4 @@
 ---
-title: "Analysis"
 output: 
   html_document:
     toc: true
@@ -41,15 +40,12 @@ data %>%
 "I am planning to conduct systematic review in the future",
 "Have you published a systematic review - e.g. in a scientific journal or as a thesis",
 "I think that systematic reviews are important for advancing scientific knowledge",
-"If you answered ”Strongly disagree” or ”Disagree” to the previous question, what is the reason for your answer"))) 
+"If you answered ”Strongly disagree” or ”Disagree” to the previous question, what is the reason for your answer")))
+```
 
-print(paste(
-  sum(data_GeneralPublic$`Have you published a systematic review - e.g. in a scientific journal or as a thesis?`=="Yes"),
-  "out of",
-  nrow(data_GeneralPublic),
-  "researchers have answered Yes to the question 'Have you published a systematic review - e.g. in a scientific journal or as a thesis?'"
-      ))
 
+### Q1: How familiar are you with the term systematic review?
+```{r}
 data %>% 
   group_by(`How familiar are you with the term systematic review?`) %>% 
   count() %>% 
@@ -66,7 +62,7 @@ data %>%
         panel.grid.minor.x = element_blank())
 ```
 
-
+### Q2-Q6: Use of SRs
 ```{r}
 data_GeneralPublic %>% 
   select(`I am aware how systematic reviews are different from traditional literature reviews.`,
@@ -107,9 +103,14 @@ data_GeneralPublic %>%
   facet_wrap(.~name, scales = "free",ncol=1)
 ```
 
-## Academics who have conducted a SR
+```{r}
+ResearchersHavePublishedSRYES<- sum(data_GeneralPublic$`Have you published a systematic review - e.g. in a scientific journal or as a thesis?`=="Yes")
+```
 
-Have you ever conducted a systematic review? Why yes and why not?
+### Q7: Have you published a systematic review - e.g. in a scientific journal or as a thesis?
+`r ResearchersHavePublishedSRYES` out of `r nrow(data_GeneralPublic)` researchers have answered Yes to the question 'Have you published a systematic review - e.g. in a scientific journal or as a thesis?'
+
+### Q9-11: Have you ever conducted a systematic review? Why yes and why not?
 
 ```{r}
 #Have you ever conducted a systematic review?
@@ -146,7 +147,8 @@ data %>%
   rename(`If you answered ”No” to the previous question, what is the reason for not conducting a systematic review?`=column) %>% kbl() %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
 ```
 
-```{r fig.height=8}
+### Q12-13: n SRs and timeframe
+```{r}
 data_SRAcademics<-
 data %>% 
   filter(`Have you ever conducted a systematic review?`=="Yes") %>% 
@@ -165,8 +167,19 @@ data %>%
 "What was the population of the systematic reviews you have performed",
 "If you have answer either ”Animal studies” or ”Both”, what was the rationale behind conducting a systematic review in animal studies")))
 
-paste0("Researchers have been involved in a median of ",median(data_SRAcademics$`How many systematic reviews have you been involved in?  []`)," SRs, with a range of ",min(data_SRAcademics$`How many systematic reviews have you been involved in?  []`)," - ",max(data_SRAcademics$`How many systematic reviews have you been involved in?  []`),". It took an average of ",round(mean(data_SRAcademics$`On average, how many months did it take you to perform a systematic review (from protocol writing to a first draft of a publication)?  []`),1)," months to complete a SR (from protocol writing to a first draft of a publication)")
 
+
+medianSRConducted<-median(data_SRAcademics$`How many systematic reviews have you been involved in?  []`)
+minSRConducted<-min(data_SRAcademics$`How many systematic reviews have you been involved in?  []`,na.rm = T)
+maxSRConducted<-max(data_SRAcademics$`How many systematic reviews have you been involved in?  []`,na.rm = T)
+monthsSR<-round(mean(data_SRAcademics$`On average, how many months did it take you to perform a systematic review (from protocol writing to a first draft of a publication)?  []`,na.rm = T))
+
+```
+
+Researchers have been involved in a median of `r medianSRConducted`, with a range of `r minSRConducted` - `r maxSRConducted`. It took an avarage of `r monthsSR` months to complete a SR (from protocol writing to a first draft of a publication).
+
+### Q14-16: 1. Academics who have conducted a SR
+```{r fig.height=10}
 data_SRAcademics %>% 
   mutate(`Would you consider performing another systematic review?`=case_when(
     `Would you consider performing another systematic review?`=="Likely"~"Agree",
@@ -182,8 +195,13 @@ data_SRAcademics %>%
   pivot_longer(everything()) %>% 
   group_by(name,value) %>% count() %>% 
   pivot_wider(names_from = value,values_from = n) %>% 
-  select(name,Disagree,Neutral,Agree,`Strongly Agree`)  %>% kbl() %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+  select(name,Disagree,Neutral,Agree,`Strongly Agree`)  %>%
+  rename("Questions"=1) %>% 
+  kbl() %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+```
 
+### Q17-21: 2. Academics who have conducted a SR
+```{r fig.width=10, fig.height=8}
 data_SRAcademics %>% 
   select(starts_with(c("Which systematic review step(s) have you been involved in",
                        "What was/ were the most challenging step(s) of systematic review",
@@ -200,12 +218,16 @@ data_SRAcademics %>%
   mutate(order_y=1:n()) %>% 
   ggplot(aes(y=reorder(Group,order_y),x=n))+
   geom_bar(stat="identity",fill="#efefef",color="#cacaca")+
-  facet_wrap(.~Question,scales = "free",ncol=1)+
+  facet_wrap(.~str_wrap(Question, width = 60),scales = "free",ncol=1)+
   theme_minimal()+
   theme(panel.grid.major.y = element_blank(),
+        axis.title.y = element_blank(),
         panel.grid.minor.x = element_blank(),
         strip.background = element_rect(fill="#d9dde7",color=NA))
+```
 
+### Q22-23: SR population
+```{r fig.height=10}
 data_SRAcademics %>% 
   select(starts_with("What was the population of the systematic reviews you have performed")) %>% 
   rename_with(~ gsub("What was the population of the systematic reviews you have performed\\?", "", .))%>% 
@@ -219,9 +241,11 @@ data_SRAcademics %>%
   mutate(name=ifelse(name=="Other",paste0(name," - ",value),name)) %>% 
   group_by(name) %>% count()%>% 
     rename(`What was the population of the systematic reviews you have performed?`=name) %>% kbl() %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
-  
-  
-  data_SRAcademics %>% select(starts_with("If you have answer either ”Animal studies” or ”Both”, what was the rationale behind c")) %>% 
+```
+
+
+```{r fig.height=10}
+data_SRAcademics %>% select(starts_with("If you have answer either ”Animal studies” or ”Both”, what was the rationale behind c")) %>% 
     pivot_longer(everything()) %>% 
     filter(value!="N/A") %>% 
     filter(value!="No") %>% 
@@ -238,7 +262,7 @@ data_SRAcademics %>%
 ```
 
 ## Animal research/Future of SR
-
+### Q24: Animal experimentation
 ```{r}
 data_AnimalResearch<-
 data %>% 
@@ -249,7 +273,10 @@ data %>%
 
 
 data_AnimalResearch %>% group_by(`Have you performed animal experimentation in the past year?`) %>% count() %>% kbl() %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+```
 
+### Q25-27: Animal Welfare
+```{r}
 data_AnimalResearch %>% 
   select(starts_with(c(
 "I am familiar with the concept of 3Rs (Replacement, Reduction and Refinement of animals in research",
@@ -258,12 +285,15 @@ data_AnimalResearch %>%
   pivot_longer(everything()) %>% 
   group_by(name,value) %>% count() %>% 
   pivot_wider(names_from = value,values_from = n) %>% 
-  select(name,Disagree,Neutral,Agree) %>% kbl() %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+  select(name,Disagree,Neutral,Agree) %>% 
+  rename(Questions=name) %>% 
+  kbl() %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
 
 ```
 
 ## Demographics
 
+### Q28-29: Gender and age
 ```{r}
 data_demographics<-
 data %>% 
@@ -276,6 +306,17 @@ data %>%
 "What is the highest degree you have obtained",
 "Which stage of your career are you currently pursuing")))
 
+
+nFemales<-sum(data_demographics$`Select your gender.`=="Female")
+meanAge<-round(mean(data_demographics$`Your age:  []`),1)
+minAge<-round(min(data_demographics$`Your age:  []`),1)
+maxAge<-round(max(data_demographics$`Your age:  []`),1)
+sdAge<-round(sd(data_demographics$`Your age:  []`),1)
+```
+`r nFemales` (`r round((nFemales/nrow(data_demographics))*100)`%) of the participants were females. Average age was `r meanAge` (SD: `r sdAge`, range: `r minAge` - `r maxAge`)
+
+### Q33: Field of work
+```{r}
 data_demographics%>% 
   select(starts_with("Which field are you working in")) %>% 
   rename_with(~ gsub("Which field are you working in\\?", "", .))%>% 
@@ -287,34 +328,29 @@ data_demographics%>%
          name=ifelse(name=="Other",paste0(name," - ",value),name)) %>% 
   group_by(name) %>% count() %>% 
   rename(`Which field are you working in?`=name) %>% kbl() %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
-
-##all together - could generate a plot maybe?
-rbind(data_demographics%>% 
-  select(starts_with("Which field are you working in")) %>% 
-  rename_with(~ gsub("Which field are you working in\\?", "", .))%>% 
-  rename_with(~ gsub("\\[", "", .))%>% 
-  rename_with(~ gsub("\\]", "", .)) %>% 
-  pivot_longer(everything()) %>% 
-  mutate(name=trimws(name),
-         value=ifelse(!is.na(value)&name=="Other","Yes",value)) %>% 
-  filter(value=="Yes") %>% 
-  group_by(name) %>% count() %>% ungroup() %>% 
-  mutate(group="Field of work",
-         n_perc=n/sum(n)),
-
-data_demographics%>% 
-  group_by(`What is the highest degree you have obtained?`) %>% count()%>% ungroup() %>% 
-  mutate(group="Highest degrer",
-         n_perc=n/sum(n)) %>% 
-  rename(name=1),
-
-data_demographics%>% 
-  group_by(`Which stage of your career are you currently pursuing?`) %>% count()%>% ungroup() %>% 
-  mutate(group="Stage of career",
-         n_perc=n/sum(n)) %>% 
-  rename(name=1))
-
-data_demographics %>% group_by(`Select your gender.`) %>% count() %>% ungroup() %>% mutate(n=n/sum(n))
-
-paste0("Average age was (mean, SD): ",round(mean(data_demographics$`Your age:  []`),1)," (",round(sd(data_demographics$`Your age:  []`),1),")")
 ```
+
+### Q34-35: Career
+```{r}
+data_demographics %>% 
+  mutate(`What is the highest degree you have obtained?`=ifelse(
+    `What is the highest degree you have obtained?`=="Other",`What is the highest degree you have obtained?  [Other]`,`What is the highest degree you have obtained?`
+  )) %>% 
+  group_by(`What is the highest degree you have obtained?`) %>% 
+  count() %>% arrange(-n) %>% 
+  kbl() %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+  
+data_demographics %>% 
+  group_by(`Which stage of your career are you currently pursuing?`) %>% 
+  count() %>% arrange(-n)%>% 
+  kbl() %>%   kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+```
+
+
+
+
+
+
+
+
+
