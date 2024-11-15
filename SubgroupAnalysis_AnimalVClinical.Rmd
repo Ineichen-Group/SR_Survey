@@ -24,10 +24,18 @@ library(kableExtra)
 ```
 
 ```{r}
-data <- read_csv("results-survey615211.csv") %>% 
+# data <- 
+  read_csv("results-survey615211.csv") %>% 
+  mutate(FieldWork=ifelse(`Which field are you working in?  [Animal research]`=="Yes","Animal",NA)) %>% View()
   filter(!(`How would you define, in your own words, a “systematic review”?`=="xx"))
 
 Questions_groups <- read_csv("Questions_groups.csv")
+
+
+data$`Which field are you working in?  [Animal research]`
+
+
+data
 ```
 
 ## General public
@@ -73,7 +81,7 @@ Q1_data %>%
 
 ### Q2-Q6: Use of SRs
 ```{r}
-data_UseOfSR<-data_GeneralPublic %>% 
+data_GeneralPublic %>% 
   select(`I am aware how systematic reviews are different from traditional literature reviews.`,
          `How frequently do you read or consult published systematic reviews in your field?`,
          `I am planning to conduct systematic review in the future.`,
@@ -101,18 +109,15 @@ data_UseOfSR<-data_GeneralPublic %>%
     name=="I think that systematic reviews are important for advancing scientific knowledge."&value=="Neutral"~1,
     name=="I think that systematic reviews are important for advancing scientific knowledge."&value=="Agree"~2,
     name=="I think that systematic reviews are important for advancing scientific knowledge."&value=="Strongly Agree"~3,
-  )) 
-
-data_UseOfSR %>% 
-  ggplot(aes(y = reorder_within(str_wrap(value, width = 40), n, name), x = n)) +
-  geom_bar(stat = "identity", fill = "#efefef", color = "#cacaca") +
-  theme_minimal() +
-  scale_y_reordered() +  # Properly orders values within facets
+  )) %>% 
+  ggplot(aes(y = reorder(str_wrap(value, width = 40),order),x=n))+
+  geom_bar(stat="identity",fill="#efefef",color="#cacaca")+
+  theme_minimal()+
   theme(axis.title.y = element_blank(),
         panel.grid.major.y = element_blank(),
         panel.grid.minor.x = element_blank(),
-        strip.background = element_rect(fill = "#d9dde7", color = NA)) +
-  facet_wrap(.~name, scales = "free_y", ncol = 1)
+        strip.background = element_rect(fill="#d9dde7",color=NA))+
+  facet_wrap(.~name, scales = "free",ncol=1)
 ```
 
 ```{r}
