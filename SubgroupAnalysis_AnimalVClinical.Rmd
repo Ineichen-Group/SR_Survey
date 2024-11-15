@@ -24,18 +24,23 @@ library(kableExtra)
 ```
 
 ```{r}
-# data <- 
+
+data <- 
   read_csv("results-survey615211.csv") %>% 
   mutate(FieldWork=ifelse(`Which field are you working in?  [Animal research]`=="Yes","Animal",NA)) %>% View()
-  filter(!(`How would you define, in your own words, a “systematic review”?`=="xx"))
+  filter(!(`How would you define, in your own words, a “systematic review”?`=="xx"))%>%  
+  mutate(`Which field are you working in?  [Clinical research (i.e., data or samples from humans)]`=ifelse(
+    `Which field are you working in?  [Medicine (i.e., working as a medical doctor with patients)]`=="Yes","Yes",`Which field are you working in?  [Clinical research (i.e., data or samples from humans)]`
+  )) %>% 
+  mutate(TypeResearch=case_when(
+    `Which field are you working in?  [Animal research]`=="Yes"&`Which field are you working in?  [Clinical research (i.e., data or samples from humans)]`=="No"~"Animal",
+    `Which field are you working in?  [Animal research]`=="Yes"&`Which field are you working in?  [Clinical research (i.e., data or samples from humans)]`=="Yes"~"Both",
+    `Which field are you working in?  [Animal research]`=="No"&`Which field are you working in?  [Clinical research (i.e., data or samples from humans)]`=="No"~"Neither",
+    `Which field are you working in?  [Animal research]`=="No"&`Which field are you working in?  [Clinical research (i.e., data or samples from humans)]`=="Yes"~"Clinical",
+   ))
 
 Questions_groups <- read_csv("Questions_groups.csv")
 
-
-data$`Which field are you working in?  [Animal research]`
-
-
-data
 ```
 
 ## General public
